@@ -40,7 +40,7 @@ const SignUp = () => {
       resetFormFields()
       console.log("response", user);
     } catch (error) {
-      if(error.code == "auth/email-already-in-use"){
+      if(error.code === "auth/email-already-in-user"){
         alert("Email already in use")
       }else{
         console.log("Error while creating user", error)
