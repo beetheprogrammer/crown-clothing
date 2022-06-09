@@ -1,6 +1,22 @@
-import {initializeApp} from "firebase/app";
-import { createUserWithEmailAndPassword, getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, signOut } from "firebase/auth";
-import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { initializeApp } from "firebase/app";
+import {
+	createUserWithEmailAndPassword,
+	getAuth,
+	GoogleAuthProvider,
+	onAuthStateChanged,
+	signInWithEmailAndPassword,
+	signInWithPopup,
+	signInWithRedirect,
+	signOut,
+} from "firebase/auth";
+import {
+	getFirestore,
+	doc,
+	getDoc,
+	setDoc,
+	collection,
+	writeBatch,
+} from "firebase/firestore";
 
 const firebaseConfig = {
 	apiKey: "AIzaSyCWjWySdnPXYVy3B5mVSk0wn9RY6xY7F0Q",
@@ -13,54 +29,74 @@ const firebaseConfig = {
 
 const firebaseApp = initializeApp(firebaseConfig);
 
-const googleProvider = new GoogleAuthProvider()
+const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
-  prompt: "select_account",
-})
+	prompt: "select_account",
+});
 
-export const auth = getAuth()
-export const signInWithGooglePopup = () => signInWithPopup(auth, googleProvider)
-export const signInWithGoogleRedirect = () => signInWithRedirect(auth, googleProvider)
+export const auth = getAuth();
+export const signInWithGooglePopup = () =>
+	signInWithPopup(auth, googleProvider);
+export const signInWithGoogleRedirect = () =>
+	signInWithRedirect(auth, googleProvider);
 
-export const db = getFirestore()
+export const db = getFirestore();
 
-export const createUserDocumentFromAuth = async (userAuth, additionalInformation = {}) => {
-  if (!userAuth) return;
-  const userDocRef = doc(db, "users", userAuth.uid)
-  const userSnapshot = await getDoc(userDocRef);
-  console.log("userDocRef", userDocRef);
-  console.log("userSnapshot", userSnapshot);
-  console.log("userSnapshot", userSnapshot.exists());
+export const addCollectionAndDocuments = async (
+	collectionKey,
+	objectsToAdd
+) => {
+	const collectionRef = collection(db, collectionKey);
+	const batch = writeBatch(db);
+	objectsToAdd.forEach((object) => {
+		const docRef = doc(collectionRef, object.title.toLowerCase());
+		batch.set(docRef, object);
+	});
+	await batch.commit();
+	console.log("done");
+};
 
-  if(!userSnapshot.exists()){
-    const {displayName, email} = userAuth;
-    const createdAt = new Date();
+export const createUserDocumentFromAuth = async (
+	userAuth,
+	additionalInformation = {}
+) => {
+	if (!userAuth) return;
+	const userDocRef = doc(db, "users", userAuth.uid);
+	const userSnapshot = await getDoc(userDocRef);
+	console.log("userDocRef", userDocRef);
+	console.log("userSnapshot", userSnapshot);
+	console.log("userSnapshot", userSnapshot.exists());
 
-    try{
-      await setDoc(userDocRef, {
+	if (!userSnapshot.exists()) {
+		const { displayName, email } = userAuth;
+		const createdAt = new Date();
+
+		try {
+			await setDoc(userDocRef, {
 				displayName,
 				email,
 				createdAt,
 				...additionalInformation,
 			});
-    }catch(e){
-      console.log("error", e.message)
-    }
-  }
+		} catch (e) {
+			console.log("error", e.message);
+		}
+	}
 
-  return userDocRef;
-}
+	return userDocRef;
+};
 
 export const createAuthUserWithEmailAndPassword = async (email, password) => {
-  if(!email && !password) return;
-  return await createUserWithEmailAndPassword(auth, email, password)
-}
+	if (!email && !password) return;
+	return await createUserWithEmailAndPassword(auth, email, password);
+};
 
 export const signInAuthUserWithEmailAndPassword = async (email, password) => {
-  if(!email && !password) return;
-  return await signInWithEmailAndPassword(auth, email, password)
-}
+	if (!email && !password) return;
+	return await signInWithEmailAndPassword(auth, email, password);
+};
 
-export const signOutUser = async () =>await signOut(auth);
+export const signOutUser = async () => await signOut(auth);
 
-export const onAuthStateChangeListerner = (callback) => onAuthStateChanged(auth, callback)
+export const onAuthStateChangeListerner = (callback) =>
+	onAuthStateChanged(auth, callback);
